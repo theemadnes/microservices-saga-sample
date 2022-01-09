@@ -1,0 +1,4 @@
+#flask
+google-cloud-pubsub
+python-dotenv
+firebase-admin

@@ -3,8 +3,14 @@ Naive attempt at using multiple microservices that implement the saga pattern wi
 
 ### setup
 
-create frontend topic
+create `frontend` topic
 
 ```
 gcloud pubsub topics create frontend
+```
+
+create `order-created` topic
+
+```
+gcloud pubsub topics create order-created
 ```

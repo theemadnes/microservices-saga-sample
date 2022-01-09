@@ -18,6 +18,7 @@ def index():
 @app.route('/order', methods=['GET', 'POST'])
 def order():
     if request.method == 'POST':
+        # TODO: lightweight validation of user existence here
         # add UUID to request JSON
         request.json['uuid'] = str(uuid.uuid4())
         data = json.dumps(request.json).encode("UTF-8")
