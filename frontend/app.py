@@ -22,7 +22,7 @@ def order():
         # add UUID to request JSON
         request.json['uuid'] = str(uuid.uuid4())
         data = json.dumps(request.json).encode("UTF-8")
-        print("Publishing " + json.dumps(request.json))
+        print(f"Publishing message to {topic_path}:\n{json.dumps(request.json)}")
         future = publisher.publish(topic_path, data)
         #return 'called POST\n'
         print(future.result())

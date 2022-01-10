@@ -4,7 +4,7 @@ Naive attempt at using multiple microservices that implement the saga pattern wi
 Rought flow:
 
 person => POST JSON to frontend svc =>
-frontend svc publishes JSON to pubsub (and tags JSON with UUID) =>
+`frontend` svc publishes JSON to pubsub (and tags JSON with UUID) =>
 consumed by `order` svc & order created and publish to pubsub when complete =>
 consumed by `inventory` svc & inventory updated and publish to pubsub when complete (error if insufficient inventory and publish to error topic) =>
 consumed by `payments` svc & payment "invoice" record created (error if initial JSON contains some field to indicate insufficient funds to simulate failure, and publish to error topic)
@@ -31,6 +31,11 @@ create `order-created` topic
 gcloud pubsub topics create order-created
 ```
 
+create `order-created-sub` subscription
+
+```
+gcloud pubsub subscriptions create order-created-sub --topic=order-created
+```
 
 
 Using this stuff:

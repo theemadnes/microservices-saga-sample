@@ -3,7 +3,7 @@ from firebase_admin import firestore
 from firebase_admin import credentials
 from google.cloud import pubsub_v1
 import os
-import logging
+#import logging
 import json
 from dotenv import load_dotenv
 
@@ -47,17 +47,27 @@ def receive_messages(
         # first check if user exists
         user = user_ref.get()
         if user.exists:
-            print(f"User {msg['user']} exists. Creating order.")
-            print(f"Writing to Firestore user subcollection {os.environ.get('COLLECTION_ORDERS')}.")
+            print(f"User {msg['user']} exists. Continuing.")
             order_ref = user_ref.collection(os.environ.get('COLLECTION_ORDERS')).document(msg['uuid'])
-            order_ref.set({
-                'item': msg['item'],
-                'quantity': msg['quantity']
-            })
-
+            #check for existing document with same uuid
+            order = order_ref.get()
+            if not order.exists:
+                print(f"Writing to document {msg['uuid']} in user subcollection {os.environ.get('COLLECTION_ORDERS')}.")
+                order_ref.set({
+                    'item': msg['item'],
+                    'quantity': msg['quantity']
+                })
+            else:
+                print(f"Document {msg['uuid']} already exists.")
             # publish to orders-created topic
             publisher = pubsub_v1.PublisherClient()
             topic_path = publisher.topic_path(os.environ.get('PROJECT_ID'), os.environ.get('TOPIC_ORDER_CREATED'))
+            data = json.dumps(msg).encode("UTF-8")
+            print(f"Publishing message to {topic_path}:\n{json.dumps(msg)}")
+            future = publisher.publish(topic_path, data)
+            #return 'called POST\n'
+            print(future.result())
+            
         
         else: 
             print(f"User {msg['user']} does not exist. Ignoring.")
