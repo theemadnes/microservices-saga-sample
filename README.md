@@ -9,6 +9,12 @@ create `frontend` topic
 gcloud pubsub topics create frontend
 ```
 
+create `frontend-sub` subscription
+
+```
+gcloud pubsub subscriptions create frontend-sub --topic=frontend
+```
+
 create `order-created` topic
 
 ```

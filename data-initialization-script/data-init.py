@@ -47,7 +47,8 @@ doc_ref.set({
 doc_ref = doc_ref.collection(os.environ.get('COLLECTION_ORDERS')).document(u'00000000-3321-4927-bac1-2750a1d16017')
 doc_ref.set({
     u'item': 'widget',
-    u'quantity': 50
+    u'quantity': 50,
+    u'note': 'dummy order'
 })
 doc_ref = db.collection(os.environ.get('COLLECTION_USERS')).document(u'jill')
 doc_ref.set({
@@ -56,7 +57,8 @@ doc_ref.set({
 doc_ref = doc_ref.collection(os.environ.get('COLLECTION_ORDERS')).document(u'00000000-4f1c-401d-bc8a-701d3c1e9603')
 doc_ref.set({
     u'item': 'wotsit',
-    u'quantity': 60
+    u'quantity': 60,
+    u'note': 'dummy order'
 })
 
 # set inventory data

@@ -8,7 +8,7 @@ from flask import Flask, request, Response, jsonify
 load_dotenv()
 app = Flask(__name__)
 publisher = pubsub_v1.PublisherClient()
-topic_path = publisher.topic_path(os.environ.get('PROJECT_ID'), os.environ.get('TOPIC'))
+topic_path = publisher.topic_path(os.environ.get('PROJECT_ID'), os.environ.get('TOPIC_FRONTEND'))
 
 
 @app.route('/')

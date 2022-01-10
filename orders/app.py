@@ -39,20 +39,28 @@ def receive_messages(
     subscription_path = subscriber.subscription_path(project_id, subscription_id)
 
     def callback(message: pubsub_v1.subscriber.message.Message) -> None:
-        print(f"Received {message}.\nWriting to Firestore user subcollection {os.environ.get('COLLECTION_ORDERS')}")
+        print(f"Received {message}.\n")
         msg = json.loads(message.data.decode("utf-8"))
         
         # create orders record
         user_ref = db.collection(os.environ.get('COLLECTION_USERS')).document(msg['user'])
-        order_ref = user_ref.collection(os.environ.get('COLLECTION_ORDERS')).document(msg['uuid'])
-        order_ref.set({
-            'item': msg['item'],
-            'quantity': msg['quantity']
-        })
+        # first check if user exists
+        user = user_ref.get()
+        if user.exists:
+            print(f"User {msg['user']} exists. Creating order.")
+            print(f"Writing to Firestore user subcollection {os.environ.get('COLLECTION_ORDERS')}.")
+            order_ref = user_ref.collection(os.environ.get('COLLECTION_ORDERS')).document(msg['uuid'])
+            order_ref.set({
+                'item': msg['item'],
+                'quantity': msg['quantity']
+            })
 
-        # publish to orders-created topic
-        publisher = pubsub_v1.PublisherClient()
-        topic_path = publisher.topic_path(os.environ.get('PROJECT_ID'), os.environ.get('ORDER_CREATED_TOPIC'))
+            # publish to orders-created topic
+            publisher = pubsub_v1.PublisherClient()
+            topic_path = publisher.topic_path(os.environ.get('PROJECT_ID'), os.environ.get('TOPIC_ORDER_CREATED'))
+        
+        else: 
+            print(f"User {msg['user']} does not exist. Ignoring.")
 
         # confirm message
         message.ack()
@@ -75,4 +83,4 @@ def receive_messages(
 
 if __name__ == '__main__':
 
-    receive_messages(os.environ.get('PROJECT_ID'), os.environ.get('SUBSCRIPTION'), None)
+    receive_messages(os.environ.get('PROJECT_ID'), os.environ.get('SUBSCRIPTION_FRONTEND'), None)
