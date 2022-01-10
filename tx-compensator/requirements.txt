@@ -1,0 +1,4 @@
+PROJECT_ID=alexmattson-scratch
+SUBSCRIPTION_INVENTORY_UPDATED=inventory-updated-sub
+TOPIC_ERROR=error
+COLLECTION_PAYMENTS=payments
