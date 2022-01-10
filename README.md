@@ -15,28 +15,20 @@ If running locally, make sure you create virtual environments for each service a
 
 ### setup
 
-create `frontend` topic
-
+create topics
 ```
-gcloud pubsub topics create frontend
+for TOPIC in frontend order-created inventory-updated error
+do
+    gcloud pubsub topics create $TOPIC
+done
 ```
 
-create `frontend-sub` subscription
-
+create subscriptions
 ```
 gcloud pubsub subscriptions create frontend-sub --topic=frontend
-```
-
-create `order-created` topic
-
-```
-gcloud pubsub topics create order-created
-```
-
-create `order-created-sub` subscription
-
-```
 gcloud pubsub subscriptions create order-created-sub --topic=order-created
+gcloud pubsub subscriptions create inventory-updated-sub --topic=inventory-updated
+gcloud pubsub subscriptions create error-sub --topic=error
 ```
 
 Populate the user & inventory collections
