@@ -11,6 +11,8 @@ consumed by `payments` svc & payment "invoice" record created (error if initial 
 
 `tx-compensator` is a super naive transaction compensator service that listens to error topic and takes compensating actions against `orders`, `inventory` & `payments` to remove stale records. records are stored in either Firestore collections and subcollections, and (with the exception of the `users` collection) are keyed on a UUID assigned by the frontend service, and records in those various collections will get purged during compensation. the UUID also allows for idempotency, as replayed messages will be ignored if an existing record with the same UUID exists.
 
+If running locally, make sure you create virtual environments for each service and install the required packages in each service's `requirements.txt`.
+
 ### setup
 
 create `frontend` topic
@@ -37,16 +39,25 @@ create `order-created-sub` subscription
 gcloud pubsub subscriptions create order-created-sub --topic=order-created
 ```
 
+Populate the user & inventory collections
+```
+python data-initialization-script/data-init.py
+```
 
-Using this stuff:
-# test POST via curl
+### Using this stuff
+
+test POST via curl
+```
 curl -X POST http://127.0.0.1:8080/order \
    -H 'Content-Type: application/json' \
    -d '{"item":"widget","quantity":"50","user":"jack"}'
-
+```
+```
 curl -X POST http://127.0.0.1:8080/order \
    -H 'Content-Type: application/json' \
    -d '{"item":"wotsit","quantity":"80","user":"jill"}'
-
-# create sub & output messages
+```
+create sub & output messages
+```
 gcloud pubsub subscriptions pull frontend-sub --auto-ack
+```
