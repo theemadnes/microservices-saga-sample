@@ -11,7 +11,7 @@ consumed by `payments` svc & payment "invoice" record created (error if initial 
 
 `tx-compensator` is a super naive transaction compensator service that listens to error topic and takes compensating actions against `orders`, `inventory` & `payments` to remove stale records. records are stored in either Firestore collections and subcollections, and (with the exception of the `users` collection) are keyed on a UUID assigned by the frontend service, and records in those various collections will get purged during compensation. the UUID also allows for idempotency, as replayed messages will be ignored if an existing record with the same UUID exists.
 
-If running locally, make sure you create virtual environments for each service and install the required packages in each service's `requirements.txt`.
+If running locally, make sure you create virtual environments for each service and install the required packages in each service's `requirements.txt`. I also make heavy use of `dotenv`, and will eventually document all the env vars you need to provide to each service.
 
 ### setup
 
