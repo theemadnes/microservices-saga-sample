@@ -3,7 +3,7 @@ from firebase_admin import firestore
 from firebase_admin import credentials
 from google.cloud import pubsub_v1
 import os
-#import logging
+import datetime
 import json
 from dotenv import load_dotenv
 
@@ -41,6 +41,11 @@ def receive_messages(
     def callback(message: pubsub_v1.subscriber.message.Message) -> None:
         print(f"Received {message}.\n")
         msg = json.loads(message.data.decode("utf-8"))
+
+        # prep pubsub
+        publisher = pubsub_v1.PublisherClient()
+        topic_path = publisher.topic_path(os.environ.get('PROJECT_ID'), os.environ.get('TOPIC_ORDER_CREATED'))
+        data = json.dumps(msg).encode("UTF-8")
         
         # create orders record
         user_ref = db.collection(os.environ.get('COLLECTION_USERS')).document(msg['user'])
@@ -55,20 +60,16 @@ def receive_messages(
                 print(f"Writing to document {msg['uuid']} in user subcollection {os.environ.get('COLLECTION_ORDERS')}.")
                 order_ref.set({
                     'item': msg['item'],
-                    'quantity': msg['quantity']
+                    'quantity': msg['quantity'],
+                    'local_created': datetime.datetime.now()
                 })
+                # publish to orders-created topic
+                print(f"Publishing message to {topic_path}:\n{json.dumps(msg)}")
+                future = publisher.publish(topic_path, data)
+                print(future.result())
             else:
-                print(f"Document {msg['uuid']} already exists.")
-            # publish to orders-created topic
-            publisher = pubsub_v1.PublisherClient()
-            topic_path = publisher.topic_path(os.environ.get('PROJECT_ID'), os.environ.get('TOPIC_ORDER_CREATED'))
-            data = json.dumps(msg).encode("UTF-8")
-            print(f"Publishing message to {topic_path}:\n{json.dumps(msg)}")
-            future = publisher.publish(topic_path, data)
-            #return 'called POST\n'
-            print(future.result())
-            
-        
+                print(f"Document {msg['uuid']} already exists. Ignoring.")
+                   
         else: 
             print(f"User {msg['user']} does not exist. Ignoring.")
 

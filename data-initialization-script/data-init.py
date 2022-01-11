@@ -3,6 +3,7 @@ from firebase_admin import credentials
 from firebase_admin import firestore
 import os
 from dotenv import load_dotenv
+import datetime
 
 # load envvars
 load_dotenv()
@@ -14,6 +15,15 @@ firebase_admin.initialize_app(cred, {
 })
 
 db = firestore.client()
+
+# delete payments
+payments_ref = db.collection(os.environ.get('COLLECTION_PAYMENTS'))
+payments = payments_ref.limit(1000).stream()
+deleted = 0
+for payment in payments:
+    print(f'Deleting payment {payment.id} => {payment.to_dict()}')
+    payment.reference.delete()
+    deleted = deleted + 1
 
 # delete users & their orders
 users_ref = db.collection(os.environ.get('COLLECTION_USERS'))
@@ -30,13 +40,19 @@ for user in users:
     user.reference.delete()
     deleted = deleted + 1
 
-# delete inventory
-coll_ref = db.collection(os.environ.get('COLLECTION_INVENTORY'))
-docs = coll_ref.limit(1000).stream()
+# delete inventory & associated orders
+inventory_ref = db.collection(os.environ.get('COLLECTION_INVENTORY'))
+items = inventory_ref.limit(1000).stream()
 deleted = 0
-for doc in docs:
-    print(f'Deleting doc {doc.id} => {doc.to_dict()}')
-    doc.reference.delete()
+for item in items:
+    orders_ref = item.reference.collection(os.environ.get('COLLECTION_ORDERS'))
+    orders = orders_ref.limit(1000).stream()
+    for order in orders:
+        print(f'Deleting order {order.id} => {order.to_dict()} for item {item.id}')
+        order.reference.delete()
+
+    print(f'Deleting item {item.id} => {item.to_dict()}')
+    item.reference.delete()
     deleted = deleted + 1
 
 # set user data w/ orders
@@ -48,7 +64,8 @@ doc_ref = doc_ref.collection(os.environ.get('COLLECTION_ORDERS')).document(u'000
 doc_ref.set({
     u'item': 'widget',
     u'quantity': 50,
-    u'note': 'dummy order'
+    u'note': 'dummy order',
+    u'local_created': datetime.datetime.now()
 })
 doc_ref = db.collection(os.environ.get('COLLECTION_USERS')).document(u'jill')
 doc_ref.set({
@@ -58,7 +75,8 @@ doc_ref = doc_ref.collection(os.environ.get('COLLECTION_ORDERS')).document(u'000
 doc_ref.set({
     u'item': 'wotsit',
     u'quantity': 60,
-    u'note': 'dummy order'
+    u'note': 'dummy order',
+    u'local_created': datetime.datetime.now()
 })
 
 # set inventory data

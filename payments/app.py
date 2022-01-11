@@ -44,47 +44,29 @@ def receive_messages(
 
         # prep pubsub
         publisher = pubsub_v1.PublisherClient()
-        topic_path = publisher.topic_path(os.environ.get('PROJECT_ID'), os.environ.get('TOPIC_INVENTORY_UPDATED'))
         error_topic_path = publisher.topic_path(os.environ.get('PROJECT_ID'), os.environ.get('TOPIC_ERROR'))
         data = json.dumps(msg).encode("UTF-8")
         
-        # update inventory & create orders record
-        item_ref = db.collection(os.environ.get('COLLECTION_INVENTORY')).document(msg['item'])
-        # first check if item exists
-        item = item_ref.get()
-        if item.exists:
-            print(f"Item {msg['item']} exists. Continuing.")
-            order_ref = item_ref.collection(os.environ.get('COLLECTION_ORDERS')).document(msg['uuid'])
-            #check for existing document with same uuid
-            order = order_ref.get()
-            if not order.exists:
-                # check & update quantity
-                if item.to_dict()['quantity'] >= int(msg['quantity']):
-                    item_ref.update({u'quantity': (item.to_dict()['quantity'] - int(msg['quantity']))})
-                    print(f"Quantity for {msg['item']} updated.")
-                    # write to orders subcollection
-                    print(f"Writing to document {msg['uuid']} in inventory subcollection {os.environ.get('COLLECTION_ORDERS')}.")
-                    order_ref.set({
-                        'item': msg['item'],
-                        'quantity': msg['quantity'],
-                        'user': msg['user'],
-                        'local_created': datetime.datetime.now()
-                    })
-                    # publish to inventory-updated topic
-                    print(f"Publishing message to {topic_path}:\n{json.dumps(msg)}")
-                    future = publisher.publish(topic_path, data)
-                    print(future.result())
-                else:
-                    print(f"Insufficient inventory for {msg['item']} to fulfill order {msg['uuid']}. Issuing error message to {error_topic_path}")
-                    future = publisher.publish(error_topic_path, data)
-                    print(future.result())                    
-            else:
-                print(f"Document {msg['uuid']} already exists. Ignoring.")
-
-        else: 
-            print(f"Item {msg['item']} does not exist. Issuing error message to {error_topic_path}")
+        # create payment document
+        payment_ref = db.collection(os.environ.get('COLLECTION_PAYMENTS')).document(msg['uuid'])
+        # first check if payment exists
+        payment = payment_ref.get()
+        if payment.exists:
+            print(f"Document {msg['uuid']} already exists. Ignoring.")
+        # check to see if error condition
+        elif 'payment-error' in msg.keys():
+            print(f"Payment error detected for order {msg['uuid']}. Issuing error message to {error_topic_path}")
             future = publisher.publish(error_topic_path, data)
             print(future.result())
+        # looks good, so write payment doc to payments collection
+        else:
+            print(f"Writing to document {msg['uuid']} in collection {os.environ.get('COLLECTION_PAYMENTS')}.")
+            payment_ref.set({
+                'item': msg['item'],
+                'quantity': msg['quantity'],
+                'user': msg['user'],
+                'local_created': datetime.datetime.now()
+            })
 
         # confirm message
         message.ack()
@@ -107,4 +89,4 @@ def receive_messages(
 
 if __name__ == '__main__':
 
-    receive_messages(os.environ.get('PROJECT_ID'), os.environ.get('SUBSCRIPTION_ORDER_CREATED'), None)
+    receive_messages(os.environ.get('PROJECT_ID'), os.environ.get('SUBSCRIPTION_INVENTORY_UPDATED'), None)

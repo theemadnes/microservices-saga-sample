@@ -53,3 +53,12 @@ create sub & output messages
 ```
 gcloud pubsub subscriptions pull frontend-sub --auto-ack
 ```
+
+Generate an error in the `payments` service by including a `payment-error` key in the JSON payload, which will trigger compensating actions in the upstream services:
+```
+curl -X POST http://127.0.0.1:8080/order    -H 'Content-Type: application/json'    -d '{"item":"wotsit","quantity":"80","user":"jill", "payment-error":"null"}'
+```
+
+### TODO
+
+- add timestamps to orders
