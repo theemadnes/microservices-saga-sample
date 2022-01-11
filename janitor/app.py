@@ -49,7 +49,7 @@ def receive_messages(
         if order.exists:
             print(f"Order document {msg['uuid']} exists for item {msg['item']}. Reverting inventory and deleting order document.")
             item = item_ref.get()
-            item_ref.update({u'quantity': (item.to_dict()['quantity'] + int(order.to_dict()['quantity']))})
+            item_ref.update({u'quantity': (item.to_dict()['quantity'] + order.to_dict()['quantity'])})
             print(f"Deleting order document {msg['uuid']} from inventory item {item.id} => {order.to_dict()}")
             order.reference.delete()
 

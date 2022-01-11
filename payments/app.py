@@ -44,8 +44,8 @@ def receive_messages(
 
         # prep pubsub
         publisher = pubsub_v1.PublisherClient()
+        topic_path = publisher.topic_path(os.environ.get('PROJECT_ID'), os.environ.get('TOPIC_PAYMENT_CREATED'))
         error_topic_path = publisher.topic_path(os.environ.get('PROJECT_ID'), os.environ.get('TOPIC_ERROR'))
-        data = json.dumps(msg).encode("UTF-8")
         
         # create payment document
         payment_ref = db.collection(os.environ.get('COLLECTION_PAYMENTS')).document(msg['uuid'])
@@ -55,7 +55,9 @@ def receive_messages(
             print(f"Document {msg['uuid']} already exists. Ignoring.")
         # check to see if error condition
         elif 'payment-error' in msg.keys():
-            print(f"Payment error detected for order {msg['uuid']}. Issuing error message to {error_topic_path}")
+            msg['status'] = f"Payment error detected for order {msg['uuid']}. Issuing error message to {error_topic_path}"
+            print(msg['status'])
+            data = json.dumps(msg).encode("UTF-8")
             future = publisher.publish(error_topic_path, data)
             print(future.result())
         # looks good, so write payment doc to payments collection
@@ -65,8 +67,17 @@ def receive_messages(
                 'item': msg['item'],
                 'quantity': msg['quantity'],
                 'user': msg['user'],
-                'local_created': datetime.datetime.now()
+                'local_created': datetime.datetime.now(),
+                'price_per_unit': msg['price_per_unit'],
+                'total_invoice': (msg['price_per_unit'] * msg['quantity'])
             })
+            # publish to inventory-updated topic
+            msg['total_invoice'] = (msg['price_per_unit'] * msg['quantity'])
+            msg['status'] = f"Order {msg['uuid']} processing complete!"
+            data = json.dumps(msg).encode("UTF-8")
+            print(f"Publishing message to {topic_path}:\n{json.dumps(msg)}")
+            future = publisher.publish(topic_path, data)
+            print(future.result())
 
         # confirm message
         message.ack()

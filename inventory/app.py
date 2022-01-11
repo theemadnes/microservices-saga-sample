@@ -46,8 +46,7 @@ def receive_messages(
         publisher = pubsub_v1.PublisherClient()
         topic_path = publisher.topic_path(os.environ.get('PROJECT_ID'), os.environ.get('TOPIC_INVENTORY_UPDATED'))
         error_topic_path = publisher.topic_path(os.environ.get('PROJECT_ID'), os.environ.get('TOPIC_ERROR'))
-        data = json.dumps(msg).encode("UTF-8")
-        
+
         # update inventory & create orders record
         item_ref = db.collection(os.environ.get('COLLECTION_INVENTORY')).document(msg['item'])
         # first check if item exists
@@ -59,8 +58,8 @@ def receive_messages(
             order = order_ref.get()
             if not order.exists:
                 # check & update quantity
-                if item.to_dict()['quantity'] >= int(msg['quantity']):
-                    item_ref.update({u'quantity': (item.to_dict()['quantity'] - int(msg['quantity']))})
+                if item.to_dict()['quantity'] >= msg['quantity']:
+                    item_ref.update({u'quantity': (item.to_dict()['quantity'] - msg['quantity'])})
                     print(f"Quantity for {msg['item']} updated.")
                     # write to orders subcollection
                     print(f"Writing to document {msg['uuid']} in inventory subcollection {os.environ.get('COLLECTION_ORDERS')}.")
@@ -68,21 +67,28 @@ def receive_messages(
                         'item': msg['item'],
                         'quantity': msg['quantity'],
                         'user': msg['user'],
-                        'local_created': datetime.datetime.now()
+                        'local_created': datetime.datetime.now(),
+                        'price_per_unit': item.to_dict()['price_per_unit']
                     })
                     # publish to inventory-updated topic
+                    msg['price_per_unit'] = item.to_dict()['price_per_unit']
+                    data = json.dumps(msg).encode("UTF-8")
                     print(f"Publishing message to {topic_path}:\n{json.dumps(msg)}")
                     future = publisher.publish(topic_path, data)
                     print(future.result())
                 else:
-                    print(f"Insufficient inventory for {msg['item']} to fulfill order {msg['uuid']}. Issuing error message to {error_topic_path}")
+                    msg['status'] = f"Insufficient inventory for {msg['item']} to fulfill order {msg['uuid']}. Issuing error message to {error_topic_path}"
+                    print(msg['status'])
+                    data = json.dumps(msg).encode("UTF-8")
                     future = publisher.publish(error_topic_path, data)
                     print(future.result())                    
             else:
                 print(f"Document {msg['uuid']} already exists. Ignoring.")
 
         else: 
-            print(f"Item {msg['item']} does not exist. Issuing error message to {error_topic_path}")
+            msg['status'] = f"Item {msg['item']} does not exist. Issuing error message to {error_topic_path}"
+            print(msg['status'])
+            data = json.dumps(msg).encode("UTF-8")
             future = publisher.publish(error_topic_path, data)
             print(future.result())
 

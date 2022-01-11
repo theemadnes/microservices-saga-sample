@@ -82,9 +82,11 @@ doc_ref.set({
 # set inventory data
 doc_ref = db.collection(os.environ.get('COLLECTION_INVENTORY')).document(u'widget')
 doc_ref.set({
-    u'quantity': 10000
+    u'quantity': 10000,
+    u'price_per_unit': 10
 })
 doc_ref = db.collection(os.environ.get('COLLECTION_INVENTORY')).document(u'wotsit')
 doc_ref.set({
-    u'quantity': 20000
+    u'quantity': 20000,
+    u'price_per_unit': 15
 })
