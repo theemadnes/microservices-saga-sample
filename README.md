@@ -12,29 +12,29 @@ consumed by `inventory` svc & inventory updated and publish to pubsub when compl
 consumed by `payments` svc & payment "invoice" record created (error if initial JSON contains some field to indicate insufficient funds to simulate failure, and publish to error topic) =>
 can consume success messages via `gcloud` CLI from `payment-complete` topic \ `payment-complete-sub` subscription
 
-`janitor` is a naive transaction compensator service that listens to error topic and takes compensating actions against the `orders` & `inventory` services to remove stale records if downstream errors are detected. records are stored in either Firestore collections and subcollections, and (with the exception of the `users` collection) are keyed on a UUID assigned by the frontend service, and records in those various collections will get purged during compensation. the UUID also allows for idempotency, as replayed messages will be ignored if an existing record with the same UUID exists.
+`janitor` is a very naive transaction compensator service that listens to the `error` topic and takes compensating actions against the `orders` & `inventory` services to remove stale records if downstream errors are detected. records are stored in either Firestore collections and subcollections, and (with the exception of the `users` collection) are keyed on a UUID assigned by the frontend service, and records in those various collections will get purged during compensation. the UUID also allows for idempotency, as replayed messages will be ignored if an existing record with the same UUID exists.
 
-If running locally, make sure you create virtual environments for each service and install the required packages in each service's `requirements.txt`. I also make heavy use of `dotenv`, and will eventually document all the env vars you need to provide to each service.
+If running locally, make sure you create virtual environments for each service and install the required packages in each service's `requirements.txt`. I also make heavy use of `dotenv`, and the makefile will generate .envs for your services.
 
 ### setup
 
-create topics
-```
-for TOPIC in frontend order-created inventory-updated error payment-created
-do
-    gcloud pubsub topics create $TOPIC
-done
-```
+set your project id as an env var:
 
-create subscriptions
 ```
-gcloud pubsub subscriptions create frontend-sub --topic=frontend
-gcloud pubsub subscriptions create order-created-sub --topic=order-created
-gcloud pubsub subscriptions create inventory-updated-sub --topic=inventory-updated
-gcloud pubsub subscriptions create error-sub --topic=error
-gcloud pubsub subscriptions create error-cli-sub --topic=error
-gcloud pubsub subscriptions create payment-created-sub --topic=payment-created
+export PROJECT_ID=$(gcloud config get-value project)
 ```
+*or*
+```
+export PROJECT_ID=SOME_OTHER_PROJECT
+````
+
+create pubsub topics & subscriptions
+```
+make
+```
+> Note: check out the `Makefile` for the directives if you only need a topics or only need subs
+
+In this base directory of the repo is `sample_dotenv`, which is a consilidated example of a `.env` file you'll want to populate with your project ID and then copy to each service's directory (`data-initialization-script`, `frontend`, `inventory`, `janitor`, `orders`, and `payments`) *as a .env file*. Eventually I'll have this built into the `Makefile` as well, but depends on people actually using this.
 
 Populate the user & inventory collections
 ```
@@ -62,7 +62,12 @@ curl -X POST http://127.0.0.1:8080/order    -H 'Content-Type: application/json' 
 
 Generate an error in the `inventory` service by setting some massive inventory, which will trigger compensating actions in the upstream services:
 ```
-curl -X POST http://127.0.0.1:8080/order    -H 'Content-Type: application/json'    -d '{"item":"wotsit","quantity":500000,"user":"jill"}'
+curl -X POST http://127.0.0.1:8080/order    -H 'Content-Type: application/json'    -d '{"item":"wotsit","quantity":500000,"user":"jimbo"}'
+```
+
+Generate an error in the `orders` service by creating an order for a non-existant user, which will *not* trigger as no state has been updated yet in other services:
+```
+curl -X POST http://127.0.0.1:8080/order    -H 'Content-Type: application/json'    -d '{"item":"widget","quantity":25,"user":"jill"}'
 ```
 
 Watch for message success by consuming from the `payment-created` topic:

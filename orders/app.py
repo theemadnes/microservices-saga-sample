@@ -45,7 +45,7 @@ def receive_messages(
         # prep pubsub
         publisher = pubsub_v1.PublisherClient()
         topic_path = publisher.topic_path(os.environ.get('PROJECT_ID'), os.environ.get('TOPIC_ORDER_CREATED'))
-        data = json.dumps(msg).encode("UTF-8")
+        error_topic_path = publisher.topic_path(os.environ.get('PROJECT_ID'), os.environ.get('TOPIC_ERROR'))
         
         # create orders record
         user_ref = db.collection(os.environ.get('COLLECTION_USERS')).document(msg['user'])
@@ -65,13 +65,18 @@ def receive_messages(
                 })
                 # publish to orders-created topic
                 print(f"Publishing message to {topic_path}:\n{json.dumps(msg)}")
+                data = json.dumps(msg).encode("UTF-8")
                 future = publisher.publish(topic_path, data)
                 print(future.result())
             else:
                 print(f"Document {msg['uuid']} already exists. Ignoring.")
                    
-        else: 
-            print(f"User {msg['user']} does not exist. Ignoring.")
+        else:
+            msg['status'] = f"User {msg['user']} does not exist. Issuing error message to {error_topic_path}"
+            print(msg['status'])
+            data = json.dumps(msg).encode("UTF-8")
+            future = publisher.publish(error_topic_path, data)
+            print(future.result())
 
         # confirm message
         message.ack()
