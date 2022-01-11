@@ -65,4 +65,4 @@ curl -X POST http://127.0.0.1:8080/order    -H 'Content-Type: application/json' 
 
 ### TODO
 
-- TBD
+- write makefile for building .env files per service and possibly build out more stuff
