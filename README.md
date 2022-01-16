@@ -28,13 +28,20 @@ export PROJECT_ID=$(gcloud config get-value project)
 export PROJECT_ID=SOME_OTHER_PROJECT
 ````
 
-create pubsub topics & subscriptions
+create pubsub topics
 ```
-make
+make create-topics
 ```
-> Note: check out the `Makefile` for the directives if you only need a topics or only need subs
 
-In this base directory of the repo is `sample_dotenv`, which is a consilidated example of a `.env` file you'll want to populate with your project ID and then copy to each service's directory (`data-initialization-script`, `frontend`, `inventory`, `janitor`, `orders`, and `payments`) *as a .env file*. Eventually I'll have this built into the `Makefile` as well, but depends on people actually using this.
+create pubsub subscriptions
+```
+make create-subscriptions
+```
+
+[optional] create `.env` files for each service using defaults
+```
+make generate-dotenv-files
+```
 
 Populate the user & inventory collections
 ```
