@@ -69,12 +69,12 @@ curl -X POST http://127.0.0.1:8080/order    -H 'Content-Type: application/json' 
 
 Generate an error in the `inventory` service by setting some massive inventory, which will trigger compensating actions in the upstream services:
 ```
-curl -X POST http://127.0.0.1:8080/order    -H 'Content-Type: application/json'    -d '{"item":"wotsit","quantity":500000,"user":"jimbo"}'
+curl -X POST http://127.0.0.1:8080/order    -H 'Content-Type: application/json'    -d '{"item":"wotsit","quantity":500000,"user":"jill"}'
 ```
 
 Generate an error in the `orders` service by creating an order for a non-existant user, which will *not* trigger as no state has been updated yet in other services:
 ```
-curl -X POST http://127.0.0.1:8080/order    -H 'Content-Type: application/json'    -d '{"item":"widget","quantity":25,"user":"jill"}'
+curl -X POST http://127.0.0.1:8080/order    -H 'Content-Type: application/json'    -d '{"item":"widget","quantity":25,"user":"jimbo"}'
 ```
 
 Watch for message success by consuming from the `payment-created` topic:
